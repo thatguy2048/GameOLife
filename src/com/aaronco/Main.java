@@ -1,6 +1,6 @@
 package com.aaronco;
 
-import GameOfLife.BoradUtils;
+import GameOfLife.BoardUtils;
 
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.stream.FileImageOutputStream;
@@ -46,7 +46,7 @@ public class Main {
             gsw = new GifSequenceWriter(ios, BufferedImage.TYPE_USHORT_555_RGB, 50, false);
 
             for (int i = 0; i < iterations; ++i) {
-                gsw.writeToSequence(BoradUtils.boardToImage(boards[i]));
+                gsw.writeToSequence(BoardUtils.boardToImage(boards[i]));
                 if(i%10 == 0){
                     System.out.println(i+" of "+iterations);
                 }

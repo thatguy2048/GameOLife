@@ -2,7 +2,7 @@ package GameOfLife;
 
 import java.awt.image.BufferedImage;
 
-public class BoradUtils {
+public class BoardUtils {
     public static BufferedImage boardToImage(final Board board){
         BufferedImage output = new BufferedImage(board.getWidth(), board.getHeight(), BufferedImage.TYPE_USHORT_555_RGB);
 

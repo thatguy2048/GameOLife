@@ -4,8 +4,9 @@ import GameOfLife.Board;
 import GameOfLife.BoardUtils;
 import GameOfLife.WrappedBoard;
 import Genetic.BitsetGeneticAlgorithm;
+import Genetic.BitsetSample;
 import Genetic.Sample;
-import Genetic.SampleConsumer;
+import Genetic.BitsetSampleConsumer;
 
 import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.stream.FileImageOutputStream;
@@ -13,15 +14,13 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
 
     public static void makeGifFromRun(String filename, Board board, int runs, BitSet initial, int bitsetLengthSqrt){
         System.out.println("Generating GIF "+filename);
-
+        Set<Integer> ts = new TreeSet<>();
         //initialize board
         for(int i = 0; i < bitsetLengthSqrt; ++i){
             for(int j = 0; j < bitsetLengthSqrt; ++j){
@@ -120,9 +119,9 @@ public class Main {
         int runsPerSimulation = 100;
         int numberOfRuns = 100;
 
-        Genetic.BitsetGeneticAlgorithm bga = new BitsetGeneticAlgorithm(dnaLength, startingSamples, new SampleConsumer() {
+        Genetic.BitsetGeneticAlgorithm bga = new BitsetGeneticAlgorithm(dnaLength, startingSamples, new BitsetSampleConsumer() {
             @Override
-            public Genetic.Sample consume(Genetic.Sample sample) {
+            public Genetic.BitsetSample consume(Genetic.BitsetSample sample) {
                 sample.score = Main.runBoard(gb, sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
                 return sample;
             }
@@ -130,7 +129,7 @@ public class Main {
 
         bga.createInitialPopulation();
 
-        Sample[] bestSamples = new Sample[numberOfRuns+1];
+        BitsetSample[] bestSamples = new BitsetSample[numberOfRuns+1];
 
         System.out.println("Best Initial Sample: "+bga.bestSample());
 

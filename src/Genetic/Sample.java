@@ -1,49 +1,44 @@
 package Genetic;
 
-import java.util.BitSet;
+import sun.awt.SunHints;
+
 import java.util.Random;
 
-public class Sample{
-    public int score = -1;
-    public BitSet value = null;
+public abstract class Sample<ValueType, ScoreType> {
+    protected ValueType value;
+    protected ScoreType score;
 
-    public Sample(BitSet value){
-        this.value = (BitSet)value.clone();
+    public Sample(ValueType value, ScoreType score) {
+        this.value = value;
+        this.score = score;
     }
 
-    public Sample(Sample other){
-        this(other.value);
+    public Sample(ValueType value){
+        this(value, null);
     }
 
-    public Sample clone(){
-        return new Sample(this);
+    public Sample(){
+        this(null, null);
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(score);
-        sb.append('\t');
-        for (int i = 0; i < value.size(); i++) {
-            sb.append(value.get(i)?'1':'0');
-        }
-        return sb.toString();
+    public ValueType getValue() {
+        return value;
     }
 
-    public static Sample Mate(Sample a, Sample b, int a_length){
-        Sample output = new Sample(b);
-        for(int i = 0; i < a_length; ++i){
-            output.value.set(i, b.value.get(i));
-        }
-        return output;
+    public ScoreType getScore() {
+        return score;
     }
 
-    public static Sample Mutate(Sample s, Random random, float mutateChancePerBit, int bitLength){
-        for(int i = 0; i < bitLength; ++i){
-            if(random.nextFloat() < mutateChancePerBit){
-                s.value.flip(i);
-            }
-        }
-        return s;
+    public void setValue(ValueType value) {
+        this.value = value;
     }
-};
+
+    public void setScore(ScoreType score) {
+        this.score = score;
+    }
+
+    public abstract Sample<ValueType, ScoreType> clone();
+    public abstract Sample<ValueType, ScoreType> randomize(Random random);
+    public abstract Sample<ValueType, ScoreType> mate(Sample<ValueType,ScoreType> other, float dividePercentage);
+    public abstract Sample<ValueType, ScoreType> mutate(Random rand, float mutateChance);
+}

@@ -1,77 +1,30 @@
 package Genetic;
 
+import utils.SortedLinkedList;
+
 import java.util.*;
 import java.util.function.Consumer;
 
 
+class SortedBitsetSampleContainer extends SortedLinkedList<BitsetSample>{
 
-
-class SortedSampleContainer{
-    protected LinkedList<Sample> samples;
-
-    public SortedSampleContainer(LinkedList<Sample> container){
-        samples = container;
-    }
-
-    public SortedSampleContainer(){
-        this(new LinkedList<>());
-    }
-
-    boolean contains(Sample s){
-        return samples.contains(s);
-    }
-
-    int size(){
-        return samples.size();
-    }
-
-    Sample get(int index){
-        return samples.get(index);
-    }
-
-    Sample find(BitSet bs){
-        Sample output = null;
-        Iterator<Sample> si = samples.iterator();
-        while(si.hasNext()){
-            output = si.next();
-            if(output.value == bs){
-                return output;
+    public SortedBitsetSampleContainer(){
+        super(new Comparator<BitsetSample>() {
+            @Override
+            public int compare(BitsetSample o1, BitsetSample o2) {
+                return Integer.compare(o1.score, o2.score);
             }
-        }
-        return null;
+        });
     }
-
-    void insert(Sample s){
-        Sample tmp = null;
-        boolean found = false;
-        ListIterator<Sample> si = samples.listIterator();
-        while(si.hasNext()){
-            tmp = si.next();
-            if(tmp.score < s.score){
-                si.previous();
-                si.add(s);
-                found = true;
-                break;
-            }
-        }
-        if(!found) {
-            samples.add(s);
-        }
-    }
-
-    void foreach(Consumer<Sample> sampleConsumer){
-        samples.forEach(sampleConsumer);
-    }
-
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Samples: ");
-        sb.append(samples.size());
+        sb.append(size());
         sb.append('\n');
-        for (int i = 0; i < samples.size(); i++) {
-            sb.append(samples.get(i));
+        for (int i = 0; i < size(); i++) {
+            sb.append(getAt(i));
             sb.append('\n');
         }
         return sb.toString();
@@ -80,24 +33,26 @@ class SortedSampleContainer{
 
 public class BitsetGeneticAlgorithm{
     protected Random rando = new Random();
-    protected SortedSampleContainer ssc;
-    protected SampleConsumer sampleEvaluator;
+    protected SortedBitsetSampleContainer ssc;
+    protected BitsetSampleConsumer sampleEvaluator;
 
     int dnaSize;
     int samplesPerGeneration;
+    float splitRatio;
     int splitLength;
 
-    public BitsetGeneticAlgorithm(int dnaSize, int samplesPerGeneration, SampleConsumer sampleEvaluator){
+    public BitsetGeneticAlgorithm(int dnaSize, int samplesPerGeneration, BitsetSampleConsumer sampleEvaluator){
         this.dnaSize = dnaSize;
         this.samplesPerGeneration = samplesPerGeneration;
         this.sampleEvaluator = sampleEvaluator;
-        this.splitLength = dnaSize * 10 / 6;
+        this.splitRatio = 0.6f;
+        this.splitLength = (int)(dnaSize * splitRatio);
 
-        ssc = new SortedSampleContainer();
+        ssc = new SortedBitsetSampleContainer();
     }
 
-    protected Sample createRandomSample(){
-        Sample output = new Sample(new BitSet(dnaSize));
+    protected BitsetSample createRandomSample(){
+        BitsetSample output = new BitsetSample(new BitSet(dnaSize), dnaSize);
         for(int i = 0; i < dnaSize; ++i){
             if(rando.nextBoolean()) {
                 output.value.set(i);
@@ -113,36 +68,20 @@ public class BitsetGeneticAlgorithm{
     }
 
     public void generateNewPopulation(){
-        List<Sample> sg = new LinkedList<Sample>();
-        /*
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(0), ssc.get(1), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(1), ssc.get(2), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(0), ssc.get(2), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(2), ssc.get(3), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(0), ssc.get(3), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(3), ssc.get(4), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(0), ssc.get(4), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(4), ssc.get(5), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(0), ssc.get(5), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(5), ssc.get(6), splitLength)), rando, 0.05f, dnaSize));
-
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(1), ssc.get(3), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(2), ssc.get(4), splitLength)), rando, 0.05f, dnaSize));
-        sg.add(Sample.Mutate(sampleEvaluator.consume(Sample.Mate(ssc.get(3), ssc.get(5), splitLength)), rando, 0.05f, dnaSize));
-        */
+        List<BitsetSample> sg = new LinkedList<BitsetSample>();
 
         for(int i = 0; i < 10; ++i){
             for(int j = i+1; j < 10; ++j) {
-                sg.add(sampleEvaluator.consume(Sample.Mutate(Sample.Mate(ssc.get(i), ssc.get(j), splitLength), rando, 0.05f, dnaSize)));
-            }
 
-            sg.add(sampleEvaluator.consume(Sample.Mutate(Sample.Mate(ssc.get(i), createRandomSample(), splitLength), rando, 0.05f, dnaSize)));
+                sg.add(sampleEvaluator.consume(ssc.getAt(i).mate(ssc.getAt(j), splitRatio).mutate(rando, 0.05f)));
+            }
+            sg.add(sampleEvaluator.consume(ssc.getAt(i).mate(createRandomSample(), splitRatio).mutate(rando, 0.05f)));
         }
 
 
-        sg.forEach(new Consumer<Sample>() {
+        sg.forEach(new Consumer<BitsetSample>() {
             @Override
-            public void accept(Sample sample) {
+            public void accept(BitsetSample sample) {
                 if(ssc.contains(sample)){
                     System.out.println("Already Have Sample: "+sample);
                 }else {
@@ -156,15 +95,15 @@ public class BitsetGeneticAlgorithm{
         System.out.println(ssc);
     }
 
-    public final Sample bestSample(){
-        return ssc.get(0);
+    public final BitsetSample bestSample(){
+        return ssc.getAt(0);
     }
 
     public static void main(String[] args) {
         Random rando = new Random();
-        BitsetGeneticAlgorithm ga = new BitsetGeneticAlgorithm(10, 25, new SampleConsumer() {
+        BitsetGeneticAlgorithm ga = new BitsetGeneticAlgorithm(10, 25, new BitsetSampleConsumer() {
             @Override
-            public Sample consume(Sample sample) {
+            public BitsetSample consume(BitsetSample sample) {
                 sample.score = rando.nextInt();
                 return sample;
             }

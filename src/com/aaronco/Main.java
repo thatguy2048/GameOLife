@@ -3,105 +3,18 @@ package com.aaronco;
 import GameOfLife.Board;
 import GameOfLife.BoardUtils;
 import GameOfLife.WrappedBoard;
-import Genetic.BitsetGeneticAlgorithm;
-import Genetic.BitsetSample;
-import Genetic.Sample;
-import Genetic.BitsetSampleConsumer;
+import Genetic.*;
+import Genetic.Bitset.BitsetCrossoverSinglePoint;
+import Genetic.Bitset.BitsetGeneticAlgorithm;
+import Genetic.Bitset.BitsetSample;
 
-import javax.imageio.ImageTypeSpecifier;
-import javax.imageio.stream.FileImageOutputStream;
-import javax.imageio.stream.ImageOutputStream;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
 public class Main {
 
-    public static void makeGifFromRun(String filename, Board board, int runs, BitSet initial, int bitsetLengthSqrt){
-        System.out.println("Generating GIF "+filename);
-        Set<Integer> ts = new TreeSet<>();
-        //initialize board
-        for(int i = 0; i < bitsetLengthSqrt; ++i){
-            for(int j = 0; j < bitsetLengthSqrt; ++j){
-                board.setCell(i,j,initial.get(j+i*bitsetLengthSqrt));
-            }
-        }
-
-        ImageOutputStream ios = null;
-        GifSequenceWriter gsw = null;
-        try {
-            ios = new FileImageOutputStream(new File(filename));
-            gsw = new GifSequenceWriter(ios, BufferedImage.TYPE_USHORT_555_RGB, 50, false);
-
-            gsw.writeToSequence(BoardUtils.boardToImage(board));
-
-            for (int i = 0; i < runs; i++) {
-                System.out.println("Run "+i);
-                board = board.getNext();
-                gsw.writeToSequence(BoardUtils.boardToImage(board));
-            }
-
-            gsw.close();
-            ios.close();
-        }catch (IOException ioe){
-            System.out.println("Failed to create output image");
-        }
-    }
-
-    void runBoardsAndPrint(){
-        int iterations = 2500;
-        GameOfLife.Board[] boards = new GameOfLife.Board[iterations];
-
-        boards[0] = new GameOfLife.WrappedBoard(128,128);
-
-        for(int i = 1; i < boards[0].getHeight()-1; ++i){
-            boards[0].setCell(boards[0].getWidth()/2, i, true);
-        }
-
-
-        System.out.println("Time to compute "+iterations+" iterations on board of size "+boards[0].getWidth()+","+boards[0].getHeight()+"\t"+boards[0].getWidth()*boards[0].getHeight()+" cells.");
-        long startTime = System.currentTimeMillis();
-
-        for (int i = 1; i < iterations; ++i) {
-            boards[i] = boards[i-1].getNext();
-            if(i%10 == 0){
-                System.out.println(i+" of "+iterations);
-            }
-        }
-
-        long endTime = System.currentTimeMillis();
-
-        System.out.println("Time in milliseconds: "+(endTime-startTime));
-
-        System.out.println("Create GIF");
-
-        ImageOutputStream ios = null;
-        GifSequenceWriter gsw = null;
-        try {
-            ios = new FileImageOutputStream(new File("Test.gif"));
-            gsw = new GifSequenceWriter(ios, BufferedImage.TYPE_USHORT_555_RGB, 50, false);
-
-            for (int i = 0; i < iterations; ++i) {
-                gsw.writeToSequence(BoardUtils.boardToImage(boards[i]));
-                if(i%10 == 0){
-                    System.out.println(i+" of "+iterations);
-                }
-            }
-
-            gsw.close();
-            ios.close();
-        }catch (IOException ioe){
-            System.out.println("Failed to create output image");
-        }
-    }
-
     public static Board runBoard(Board board, BitSet initial, int bitsetLengthSqrt, int runs){
-        for(int i = 0; i < bitsetLengthSqrt; ++i){
-            for(int j = 0; j < bitsetLengthSqrt; ++j){
-                board.setCell(i,j,initial.get(j+i*bitsetLengthSqrt));
-            }
-        }
+        BoardUtils.populateBoardWithBitset(board, initial, bitsetLengthSqrt, bitsetLengthSqrt);
 
         for (int i = 0; i < runs; i++) {
             board = board.getNext();
@@ -115,36 +28,50 @@ public class Main {
 
         int dnaSqrtLength = 5;
         int dnaLength = dnaSqrtLength * dnaSqrtLength;
-        int startingSamples = 10;
+        int dnaCrossoverPoint = (dnaLength * 10) / 6;
+        int samplesPerGenerationr = 20;
         int runsPerSimulation = 100;
         int numberOfRuns = 100;
+        //CrossoverMethod<BitSet> crossoverMethod = new BitsetCrossoverRandom(new Random(), 0.4f, dnaLength);
+        CrossoverMethod<BitSet> crossoverMethod =  new BitsetCrossoverSinglePoint(dnaCrossoverPoint);
+        //CrossoverMethod<BitSet> crossoverMethod =  new BitsetCrossoverDoublePoint(dnaCrossoverPoint, dnaCrossoverPoint+5);
 
-        Genetic.BitsetGeneticAlgorithm bga = new BitsetGeneticAlgorithm(dnaLength, startingSamples, new BitsetSampleConsumer() {
+        GeneticOptimization optimizer = new BitsetGeneticAlgorithm(dnaLength, samplesPerGenerationr, new SampleEvaluator() {
             @Override
-            public Genetic.BitsetSample consume(Genetic.BitsetSample sample) {
-                sample.score = Main.runBoard(gb, sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
+            public BitsetSample evaluate(Sample sample) {
+                return evaluate((BitsetSample)sample);
+            }
+
+            public BitsetSample evaluate(BitsetSample sample) {
+                sample.score = Main.runBoard(new GameOfLife.WrappedBoard(gb.getWidth(), gb.getHeight()), sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
                 return sample;
             }
-        });
+        }, crossoverMethod);
 
-        bga.createInitialPopulation();
+        optimizer.createInitialPopulation();
 
         BitsetSample[] bestSamples = new BitsetSample[numberOfRuns+1];
 
-        System.out.println("Best Initial Sample: "+bga.bestSample());
+        System.out.println("Best Initial Sample: "+optimizer.bestSample());
 
-        bestSamples[0] = bga.bestSample();
+        bestSamples[0] = (BitsetSample)optimizer.bestSample();
 
         for(int i = 1; i < numberOfRuns+1; ++i){
-            bga.generateNewPopulation();
-            System.out.println("Best Sample At: "+i+"\t"+bga.bestSample());
-            bestSamples[i] = bga.bestSample();
+            optimizer.generateNewPopulation();
+            System.out.println("Best Sample At: "+i+"\t"+optimizer.bestSample());
+            bestSamples[i] = (BitsetSample)optimizer.bestSample();
         }
 
 
         for(int i = 0; i < numberOfRuns+1; ++i){
-            if(i == 0 || bestSamples[i] != bestSamples[i-1]) {
-                makeGifFromRun("Run" + i + "_"+bestSamples[i].score+".gif", new WrappedBoard(gb.getWidth(),gb.getHeight()), runsPerSimulation, bestSamples[i].value, dnaSqrtLength);
+            if(i == 0 || bestSamples[i].compareScore(bestSamples[i-1]) != 0) {
+                try {
+                    String filename = "Run" + i + "_" + bestSamples[i].score + ".gif";
+                    System.out.println("Generating GIF "+filename);
+                    BoardUtils.makeGifFromRun(filename, new WrappedBoard(gb.getWidth(), gb.getHeight()), runsPerSimulation, bestSamples[i].value, dnaSqrtLength, dnaSqrtLength);
+                }catch (IOException ioe){
+                    System.out.println(ioe);
+                }
             }
         }
 

@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.function.Consumer;
 
+//Sorts items as they are added to the container.
+//New items with the same value are added before previous entries of the same value.
 public class SortedLinkedList<E> {
     protected LinkedList<E> list = null;
     private Comparator<E> comparator = null;
@@ -28,7 +30,7 @@ public class SortedLinkedList<E> {
         boolean found = false;
         while(_current.hasNext()){
             tmp = _current.next();
-            if(comparator.compare(tmp, entry) < 0) {
+            if(comparator.compare(tmp, entry) <= 0) {
                 _current.previous();
                 _current.add(entry);
                 found = true;

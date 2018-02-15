@@ -1,6 +1,5 @@
 package GameOfLife;
 
-import java.util.Arrays;
 import java.util.BitSet;
 
 public class Board {
@@ -54,6 +53,12 @@ public class Board {
 
     public void setCell(int w, int h, boolean value){
         cells[h].set(w, value);
+    }
+
+    public void clearCells(){
+        for(int h = 0; h < height; ++h){
+            cells[h].clear();
+        }
     }
 
     public int countNeighbors(int w, int h){

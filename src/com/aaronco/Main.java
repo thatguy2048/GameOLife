@@ -12,32 +12,26 @@ import java.util.*;
 
 public class Main {
 
-    public static Board runBoard(Board board, BitSet initial, int bitsetLengthSqrt, int runs){
+    public static int runBoard(Board board, BitSet initial, int bitsetLengthSqrt, int runs){
         BoardUtils.populateBoardWithBitset(board, initial, bitsetLengthSqrt, bitsetLengthSqrt);
+        int score = board.aliveCellCount();
+        int lastScore;
+        int runWithBestScore = 0;
 
         for (int i = 0; i < runs; i++) {
             board = board.getNext();
+            lastScore = board.aliveCellCount();
+            if(lastScore > score){
+                runWithBestScore = i+1;
+                score = lastScore;
+            }
         }
-
-        return board;
+        //favor max value, and how quickly that max was reached
+        return score+(runs-runWithBestScore);
     }
 
     public static void main(String[] args) {
-        Board gb =  new GameOfLife.WrappedBoard(128, 128, new CellLivingRule() {
-            @Override
-            public boolean aliveNextRound(Board board, int cellx, int celly) {
-                boolean[] neighbors = board.getNeighbors(cellx, celly);
-                int _count = board.countNeighbors(cellx, celly);
-                return  _count < 6 && (neighbors[0] && neighbors[1] && neighbors[2] ||
-                        neighbors[1] && neighbors[2] && neighbors[4] ||
-                        neighbors[2] && neighbors[4] && neighbors[7] ||
-                        neighbors[4] && neighbors[7] && neighbors[6] ||
-                        neighbors[7] && neighbors[6] && neighbors[5] ||
-                        neighbors[6] && neighbors[5] && neighbors[3] ||
-                        neighbors[5] && neighbors[3] && neighbors[0]||
-                        neighbors[3] && neighbors[0] && neighbors[1]);
-            }
-        });
+        Board gb =  new GameOfLife.WrappedBoard(128, 128, new ConwaysCellRules());
 
         int dnaSqrtLength = 5;
         int dnaLength = dnaSqrtLength * dnaSqrtLength;
@@ -56,7 +50,7 @@ public class Main {
             }
 
             public BitsetSample evaluate(BitsetSample sample) {
-                sample.score = Main.runBoard(gb.clone(), sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
+                sample.score = Main.runBoard(gb.clone(), sample.value, dnaSqrtLength, runsPerSimulation);
                 return sample;
             }
         }, crossoverMethod);

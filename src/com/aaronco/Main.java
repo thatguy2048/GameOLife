@@ -1,9 +1,8 @@
 package com.aaronco;
 
-import GameOfLife.Board;
-import GameOfLife.BoardUtils;
-import GameOfLife.WrappedBoard;
+import GameOfLife.*;
 import Genetic.*;
+import Genetic.Bitset.BitsetCrossoverRandom;
 import Genetic.Bitset.BitsetCrossoverSinglePoint;
 import Genetic.Bitset.BitsetGeneticAlgorithm;
 import Genetic.Bitset.BitsetSample;
@@ -24,16 +23,30 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Board gb =  new GameOfLife.WrappedBoard(128,128);
+        Board gb =  new GameOfLife.WrappedBoard(128, 128, new CellLivingRule() {
+            @Override
+            public boolean aliveNextRound(Board board, int cellx, int celly) {
+                boolean[] neighbors = board.getNeighbors(cellx, celly);
+                int _count = board.countNeighbors(cellx, celly);
+                return  _count < 6 && (neighbors[0] && neighbors[1] && neighbors[2] ||
+                        neighbors[1] && neighbors[2] && neighbors[4] ||
+                        neighbors[2] && neighbors[4] && neighbors[7] ||
+                        neighbors[4] && neighbors[7] && neighbors[6] ||
+                        neighbors[7] && neighbors[6] && neighbors[5] ||
+                        neighbors[6] && neighbors[5] && neighbors[3] ||
+                        neighbors[5] && neighbors[3] && neighbors[0]||
+                        neighbors[3] && neighbors[0] && neighbors[1]);
+            }
+        });
 
         int dnaSqrtLength = 5;
         int dnaLength = dnaSqrtLength * dnaSqrtLength;
         int dnaCrossoverPoint = (dnaLength * 10) / 6;
         int samplesPerGenerationr = 20;
         int runsPerSimulation = 100;
-        int numberOfRuns = 100;
-        //CrossoverMethod<BitSet> crossoverMethod = new BitsetCrossoverRandom(new Random(), 0.4f, dnaLength);
-        CrossoverMethod<BitSet> crossoverMethod =  new BitsetCrossoverSinglePoint(dnaCrossoverPoint);
+        int numberOfRuns = 25;
+        CrossoverMethod<BitSet> crossoverMethod = new BitsetCrossoverRandom(new Random(), 0.4f, dnaLength);
+        //CrossoverMethod<BitSet> crossoverMethod =  new BitsetCrossoverSinglePoint(dnaCrossoverPoint);
         //CrossoverMethod<BitSet> crossoverMethod =  new BitsetCrossoverDoublePoint(dnaCrossoverPoint, dnaCrossoverPoint+5);
 
         GeneticOptimization optimizer = new BitsetGeneticAlgorithm(dnaLength, samplesPerGenerationr, new SampleEvaluator() {
@@ -43,7 +56,7 @@ public class Main {
             }
 
             public BitsetSample evaluate(BitsetSample sample) {
-                sample.score = Main.runBoard(new GameOfLife.WrappedBoard(gb.getWidth(), gb.getHeight()), sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
+                sample.score = Main.runBoard(gb.clone(), sample.value, dnaSqrtLength, runsPerSimulation).aliveCellCount();
                 return sample;
             }
         }, crossoverMethod);
@@ -68,7 +81,7 @@ public class Main {
                 try {
                     String filename = "Run" + i + "_" + bestSamples[i].score + ".gif";
                     System.out.println("Generating GIF "+filename);
-                    BoardUtils.makeGifFromRun(filename, new WrappedBoard(gb.getWidth(), gb.getHeight()), runsPerSimulation, bestSamples[i].value, dnaSqrtLength, dnaSqrtLength);
+                    BoardUtils.makeGifFromRun(filename, gb.clone(), runsPerSimulation, bestSamples[i].value, dnaSqrtLength, dnaSqrtLength);
                 }catch (IOException ioe){
                     System.out.println(ioe);
                 }

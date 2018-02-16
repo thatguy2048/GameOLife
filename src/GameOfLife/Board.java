@@ -8,10 +8,12 @@ public class Board {
     protected int height;
     protected int widthm1;
     protected int heightm1;
+    protected CellLivingRule livingCheck;
 
-    public Board(int width, int height) {
+    public Board(int width, int height, CellLivingRule livingRule) {
         this.width = width;
         this.height = height;
+        this.livingCheck = livingRule;
 
         widthm1 = width-1;
         heightm1 = height-1;
@@ -25,6 +27,7 @@ public class Board {
     public Board(final Board other) {
         this.width = other.getWidth();
         this.height = other.getHeight();
+        this.livingCheck = other.livingCheck;
 
         widthm1 = width-1;
         heightm1 = height-1;
@@ -61,22 +64,44 @@ public class Board {
         }
     }
 
+    /*
+        Returns an array of 8 boolean values representing the cells around the position provided, with the positions in the array corresponding to the following, where x is the position provided.
+        0,1,2
+        3,x,4
+        5,6,7
+     */
+    public boolean[] getNeighbors(int w, int h){
+        boolean[] output = new boolean[8];
+        BitSet tmp_bs = null;
+        if(h > 0){ //the top row
+            tmp_bs = cells[h-1];
+            if(w > 0)  output[0] = tmp_bs.get(w-1);
+            output[1] = tmp_bs.get(w-1);
+            if(w < widthm1)  output[2] = tmp_bs.get(w+1);
+        }
+        //the middle row
+        tmp_bs = cells[h];
+        if(w > 0) output[3] = tmp_bs.get(w-1);
+        if(w < widthm1) output[4] = tmp_bs.get(w+1);
+        if(h < heightm1){ //the bottom row
+            tmp_bs = cells[h+1];
+            if(w > 0)  output[0] = tmp_bs.get(w-1);
+            output[1] = tmp_bs.get(w-1);
+            if(w < widthm1)  output[2] = tmp_bs.get(w+1);
+        }
+        return output;
+    }
+
     public int countNeighbors(int w, int h){
         int output = 0;
-        if(w > 0 && cells[h].get(w-1)) ++output;
-        if(w < widthm1 && cells[h].get(w+1)) ++output;
-        if(h > 0 && cells[h-1].get(w)) ++output;
-        if(h < heightm1 && cells[h+1].get(w)) ++output;
-        if(w > 0 && h > 0 && cells[h-1].get(w-1)) ++output;
-        if(w < widthm1 && h > 0 && cells[h-1].get(w+1)) ++output;
-        if(w > 0 && h < heightm1 &&cells[h+1].get(w-1)) ++output;
-        if(w < widthm1 && h < heightm1 && cells[h+1].get(w+1)) ++output;
+        for(boolean b : getNeighbors(w,h)){
+            if(b) ++output;
+        }
         return output;
     }
 
     public boolean aliveNextRound(int w, int h){
-        int _count = countNeighbors(w,h);
-        return _count == 3 || (_count == 2 && cells[h].get(w));
+        return livingCheck.aliveNextRound(this, w, h);
     }
 
     public Board populateNextBoard(Board board){
@@ -89,7 +114,7 @@ public class Board {
     }
 
     public Board getNext(){
-        return populateNextBoard(new Board(this));
+        return populateNextBoard(this.clone());
     }
 
     public int aliveCellCount(){
@@ -98,6 +123,11 @@ public class Board {
             output += cells[h].cardinality();
         }
         return output;
+    }
+
+    @Override
+    public Board clone() {
+        return new Board(this);
     }
 
     @Override

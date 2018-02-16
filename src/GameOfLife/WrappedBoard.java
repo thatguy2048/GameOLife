@@ -1,8 +1,10 @@
 package GameOfLife;
 
+import java.util.BitSet;
+
 public class WrappedBoard extends Board {
-    public WrappedBoard(int width, int height) {
-        super(width, height);
+    public WrappedBoard(int width, int height, CellLivingRule livingRule) {
+        super(width, height, livingRule);
     }
 
     public WrappedBoard(Board other) {
@@ -10,28 +12,28 @@ public class WrappedBoard extends Board {
     }
 
     @Override
-    public int countNeighbors(int w, int h) {
-        int output = 0;
-
+    public boolean[] getNeighbors(int w, int h) {
+        boolean[] output = new boolean[8];
         int _left = (w > 0)?w-1:widthm1;
         int _right = (w < widthm1)?w+1:0;
         int _top = (h > 0)?h-1:heightm1;
         int _bottom = (h < heightm1)?h+1:0;
 
-        if(cells[h].get(_left)) ++output;
-        if(cells[h].get(_right)) ++output;
-        if(cells[_top].get(w)) ++output;
-        if(cells[_bottom].get(w)) ++output;
-        if(cells[_top].get(_left)) ++output;
-        if(cells[_top].get(_right)) ++output;
-        if(cells[_bottom].get(_left)) ++output;
-        if(cells[_bottom].get(_right)) ++output;
+        output[0] = cells[_top].get(_left);
+        output[1] = cells[_top].get(w);
+        output[2] = cells[_top].get(_right);
+        output[3] = cells[h].get(_left);
+        output[4] = cells[h].get(_right);
+        output[5] = cells[_bottom].get(_left);
+        output[6] = cells[_bottom].get(w);
+        output[7] = cells[_bottom].get(_right);
+
         return output;
     }
 
     @Override
-    public Board getNext() {
-        return populateNextBoard(new WrappedBoard(this));
+    public WrappedBoard clone() {
+        return new WrappedBoard(this);
     }
 
     @Override
